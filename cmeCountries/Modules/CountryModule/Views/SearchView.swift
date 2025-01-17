@@ -22,16 +22,10 @@ struct SearchView: View {
                 ForEach(searchText.isEmpty ? viewModel.allCountries : viewModel.searchResults) { country in
                     ZStack {
                         Button {
-                            Task {
-                                do {
-                                    try await viewModel.addCountry(country)
-                                    showAddSuccessAlert = true
-                                }
-                            }
+                            addCountry(country)
                         } label: {
                             CountryCellView(country: country)
                         }
-
                     }
                 }
             }
@@ -55,6 +49,22 @@ struct SearchView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("The country has been added to your saved list.")
+        }
+    }
+
+    private func addCountry(_ country: Country) {
+        Task {
+            do {
+                try await viewModel.addCountry(country)
+                await MainActor.run {
+                    showAddSuccessAlert = true
+                }
+            } catch {
+                await MainActor.run {
+                    viewModel.error = .networkError(error.localizedDescription)
+                    viewModel.showError = true
+                }
+            }
         }
     }
 }
